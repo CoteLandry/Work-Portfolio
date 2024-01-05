@@ -1,0 +1,96 @@
+-- Step 1: Run this query to find the names of the tables in this database
+
+  SELECT name 
+  FROM sqlite_master
+  where type = 'table'
+
+-- Step 2: Run this query to find the structure of the `crime_scene_report` table
+
+  SELECT sql 
+  FROM sqlite_master
+  where name = 'crime_scene_report'
+
+-- Step 3: Query table. Use select distincts to see what types exist in database.
+  
+select * from crime_scene_report
+	where date = 20180115
+	  and type = 'murder'
+    and city = 'SQL City'
+
+-- Step 4: Continue to learn more about the witnesses to this crime by searching people database
+  
+select * from person 
+	where name like '%Annabel%' 
+    and address_street_name like 'Franklin Ave'
+	limit 10
+
+select * from person 
+  where address_street_name like 'Northwestern Dr'
+order by address_number desc
+
+-- Step 5: Look at interviews from witnesses to gain more context as to what happened! First, get sense of table structure
+
+SELECT sql 
+FROM sqlite_master
+where name = 'interview'
+
+-- Step 6: Look at interviews from witnesses to gain more context as to what happened!
+
+select * from interview
+where person_id = 16371
+
+select * from interview
+where person_id = 14887
+
+-- Step 7: Okay clearly the killer is a gold member of this club, so let’s check the member list. First, get a sense of the structure of the table
+
+SELECT sql 
+FROM sqlite_master
+where name = 'get_fit_now_member'
+
+-- Step 8: Now let’s narrow down our suspect pool. There’s 2 viable people here! 
+
+select * from get_fit_now_member
+where id like '48Z%' 
+and membership_status = 'gold'
+
+-- Looks like they both went to the gym on this date. Annabel checked in at 16:00 and exited at 17:00
+-- Both suspects were at the gym around this time, so they remain suspicious.
+
+-- Step 8: One witness reported that they saw the person on Jan 9th. 
+-- Let’s see who checked in on the 9th
+
+select membership_id, check_in_time, check_out_time, name from get_fit_now_check_in as a 
+	left join get_fit_now_member as b on a.membership_id = b.id
+	where check_in_date = 20180109
+
+-- Step 9: Check for car license plate. 
+-- Note: Can remove any female suspects, as a man was clearly reported in this crime.
+
+  select * from drivers_license as d
+  left join person as p on d.id = p.license_id
+		where d.plate_number like '%H42W%'
+			and gender = 'male'
+			and p.id in (28819, 67318)
+
+-- Only one person remains after this search, identifying our killer as Jeremy Bowers!
+
+-- Step 10: Insert into Solutions DB and check if correct answer
+
+  INSERT INTO solution VALUES (1, 'Jeremy Bowers');
+  
+  SELECT value FROM solution;
+
+-- Advanced Challenge: Find the person who hired Jeremy Bowers based on interview transcript info
+
+select d.id, p.name, i.annual_income, p.ssn, f.* from drivers_license as d
+left join person as p on p.license_id = d.id
+left join income as i on i.ssn = p.ssn
+left join facebook_event_checkin as f on f.person_id = p.id
+where height >= 65 and height <= 67
+and gender = 'female'
+and hair_color = 'red'
+and car_make like 'Tesla'
+and car_model = 'Model S'
+and f.event_name like '%SQL Symphony Concert%'
+
